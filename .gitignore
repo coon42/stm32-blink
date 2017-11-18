@@ -1,0 +1,9 @@
+
+*.swo
+*.swp
+
+*.o
+*.elf
+*.hex
+*.bin
+
