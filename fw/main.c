@@ -50,10 +50,10 @@ int main()
 
         for (cnt = 0; cnt < 65535; cnt++) {
             if (cnt < val) {
-                gpio_clear(GPIOC, GPIO13);
+                gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
             }
             else {
-                gpio_set(GPIOC, GPIO13);
+                gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
             }
         }
 
