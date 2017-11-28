@@ -1,6 +1,8 @@
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/timer.h>
+#include <libopencm3/cm3/nvic.h>
 
 #include <math.h>
 
@@ -15,6 +17,8 @@
 
 #define __DELAY(X) { for(unsigned int _i = 0; _i<X; _i++) { __asm__("nop"); } }
 
+
+volatile uint16_t pwm_val = 0;
 
 void init()
 {
@@ -32,35 +36,75 @@ void init()
 
 }
 
+void init_pwm()
+{
+    rcc_periph_clock_enable(RCC_TIM2);
+
+    // Setup NVIC
+    nvic_enable_irq(NVIC_TIM2_IRQ);
+    nvic_set_priority(NVIC_TIM2_IRQ, 1);
+
+    // Set mode: No Div, Edge aligned, Up
+    timer_set_mode(TIM2,
+                   TIM_CR1_CKD_CK_INT,
+                   TIM_CR1_CMS_EDGE,
+                   TIM_CR1_DIR_UP);
+
+
+    // Interrupts:
+    // Timer Compare Channel 1
+    // Timer Update / Overflow
+    TIM2_DIER |= TIM_DIER_UIE | TIM_DIER_CC1IE;
+
+    // Enable output compare
+    // TIM2_CCMR1 |= TIM_CCMR1_OC1CE;
+
+    // Configure prescaler
+    TIM2_ARR = 65535; // Full range
+    TIM2_PSC = 0; // f / (arr * 60 Hz)
+
+    // Set compare value
+    TIM2_CCR1 = 0;
+
+    // Enable timer
+    TIM2_CR1 |= TIM_CR1_CEN;
+}
+
+
+void tim2_isr()
+{
+    if(TIM2_SR & TIM_SR_CC1IF) {
+        // Capture flag triggered, pulse off
+        gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
+        TIM2_SR &= ~TIM_SR_CC1IF; // Clear flag
+    }
+
+    if(TIM2_SR & TIM_SR_UIF) {
+        gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
+        TIM2_CCR1 = pwm_val;
+        TIM2_SR &= ~TIM_SR_UIF; // Clear flag
+    }
+
+}
 
 int main()
 {
     init();
+    init_pwm();
 
     // Create some simple soft PWM
     double t = 0.0;
     double f_val = 0.0;
 
-    uint16_t val = 0;
     uint16_t cnt = 0;
 
     while(42) {
         f_val = 0.5 + 0.5*cos(t*M_PI);
-        val = (uint16_t)(f_val * 65535.0);
+        pwm_val = 100 + (uint16_t)(f_val * 65335.0);
 
-        for (cnt = 0; cnt < 65535; cnt++) {
-            if (cnt < val) {
-                gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
-            }
-            else {
-                gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
-            }
-        }
-
-        t += 0.04;
+        t += 0.00009;
     }
 
     return 0;
 }
-
 
