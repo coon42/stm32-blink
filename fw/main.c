@@ -15,9 +15,6 @@
 #define GPIO_LED_PORT GPIOC
 #define GPIO_LED_PIN  GPIO13
 
-#define __DELAY(X) { for(unsigned int _i = 0; _i<X; _i++) { __asm__("nop"); } }
-
-
 volatile uint16_t pwm_val = 0;
 
 void init()
@@ -36,6 +33,7 @@ void init()
 
 }
 
+
 void init_pwm()
 {
     rcc_periph_clock_enable(RCC_TIM2);
@@ -50,14 +48,10 @@ void init_pwm()
                    TIM_CR1_CMS_EDGE,
                    TIM_CR1_DIR_UP);
 
-
     // Interrupts:
     // Timer Compare Channel 1
     // Timer Update / Overflow
     TIM2_DIER |= TIM_DIER_UIE | TIM_DIER_CC1IE;
-
-    // Enable output compare
-    // TIM2_CCMR1 |= TIM_CCMR1_OC1CE;
 
     // Configure prescaler
     TIM2_ARR = 65535; // Full range
@@ -74,7 +68,7 @@ void init_pwm()
 void tim2_isr()
 {
     if(TIM2_SR & TIM_SR_CC1IF) {
-        // Capture flag triggered, pulse off
+        // Compare flag triggered, pulse off
         gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
         TIM2_SR &= ~TIM_SR_CC1IF; // Clear flag
     }
@@ -86,6 +80,7 @@ void tim2_isr()
     }
 
 }
+
 
 int main()
 {
