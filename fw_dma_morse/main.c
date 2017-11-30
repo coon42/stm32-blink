@@ -81,7 +81,6 @@ void init_dma()
     // Setup DMA1 controller:
     // We are using channel 2 for transfer (TIM2_UP)
     // Transfer size is 16 bit
-    dma_channel_reset(DMA1, DMA_CHANNEL2);
     dma_set_memory_size(DMA1, DMA_CHANNEL2, DMA_CCR_MSIZE_16BIT);
     dma_set_peripheral_size(DMA1, DMA_CHANNEL2, DMA_CCR_PSIZE_16BIT);
 
@@ -102,7 +101,6 @@ void init_dma()
     // Enable interrupts:
     //  - Interrupt after transfer complete
     dma_enable_transfer_complete_interrupt(DMA1, DMA_CHANNEL2);
-    // dma_enable_half_transfer_interrupt(DMA1, DMA_CHANNEL1);
 
     // Enable channel
     dma_enable_channel(DMA1, DMA_CHANNEL2);
