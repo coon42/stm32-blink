@@ -76,7 +76,7 @@ void init_dma()
     rcc_periph_clock_enable(RCC_DMA1);
 
     // Setup NVIC
-    nvic_enable_irq(NVIC_DMA1_CHANNEL1_IRQ);
+    nvic_enable_irq(NVIC_DMA1_CHANNEL2_IRQ);
 
     // Setup DMA1 controller:
     // We are using channel 2 for transfer (TIM2_UP)
@@ -107,7 +107,7 @@ void init_dma()
 }
 
 
-void dma1_channel1_isr()
+void dma1_channel2_isr()
 {
     // Transfer complete interrupt flag
     if (dma_get_interrupt_flag(DMA1, DMA_CHANNEL2, DMA_TCIF)) {
@@ -150,7 +150,6 @@ void init_blink()
 
 void tim2_isr()
 {
-
     if(TIM2_SR & TIM_SR_UIF) {
         gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
         TIM2_SR &= ~TIM_SR_UIF; // Clear flag
