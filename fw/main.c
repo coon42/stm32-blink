@@ -67,17 +67,18 @@ void init_pwm()
 
 void tim2_isr()
 {
+    if(TIM2_SR & TIM_SR_UIF) {
+        gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
+        TIM2_CCR1 = pwm_val;
+        TIM2_SR &= ~TIM_SR_UIF; // Clear flag
+    }
+
     if(TIM2_SR & TIM_SR_CC1IF) {
         // Compare flag triggered, pulse off
         gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
         TIM2_SR &= ~TIM_SR_CC1IF; // Clear flag
     }
 
-    if(TIM2_SR & TIM_SR_UIF) {
-        gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
-        TIM2_CCR1 = pwm_val;
-        TIM2_SR &= ~TIM_SR_UIF; // Clear flag
-    }
 
 }
 
