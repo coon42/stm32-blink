@@ -11,11 +11,14 @@
 #define T_HI    50
 #define T_TOTAL 90
 
-#define LED_COUNT 64
+#define FB_WIDTH 8
+#define FB_HEIGHT 8
+
+#define FB_SIZE (FB_WIDTH * FB_HEIGHT * 3)
 
 // Buffers
-uint8_t ws2812_frame_buffer[LED_COUNT*3];
-uint8_t ws2812_tx_buffer[LED_COUNT*3*8];
+uint8_t ws2812_frame_buffer[FB_SIZE];
+uint8_t ws2812_tx_buffer[FB_SIZE*8];
 uint8_t ws2812_timings[] = {T_LO, T_HI};
 
 
@@ -74,7 +77,7 @@ void init_dma()
     dma_set_peripheral_address(DMA1, DMA_CHANNEL3, (uint32_t)&TIM3_CCR2);
 
     // Length
-    dma_set_number_of_data(DMA1, DMA_CHANNEL3, LED_COUNT*3*8);
+    dma_set_number_of_data(DMA1, DMA_CHANNEL3, FB_SIZE*8);
 
     // Repeat and increment pointer with each request
     dma_enable_circular_mode(DMA1, DMA_CHANNEL3);
@@ -144,11 +147,11 @@ void init_pwm()
 
 void ws2812_init_buffers()
 {
-    for(unsigned int i = 0; i < LED_COUNT*3; i++) {
+    for(unsigned int i = 0; i < FB_SIZE; i++) {
         ws2812_frame_buffer[i] = 0;
     }
 
-    for(unsigned int i = 0; i < LED_COUNT*3*8; i++) {
+    for(unsigned int i = 0; i < FB_SIZE*8; i++) {
         ws2812_tx_buffer[i] = 0;
     }
 }
@@ -156,7 +159,7 @@ void ws2812_init_buffers()
 
 void ws2812_update_tx_buffer()
 {
-    for(unsigned int i = 0; i < LED_COUNT; i++) {
+    for(unsigned int i = 0; i < (FB_WIDTH*FB_HEIGHT); i++) {
         uint8_t c;
 
         // G
@@ -209,6 +212,32 @@ void ws2812_tx()
 }
 
 
+void ws2812_putpixel(uint16_t x, uint16_t y,
+                     uint8_t r, uint8_t g, uint8_t b)
+{
+    uint32_t i = (y * FB_WIDTH * 3) + (x * 3);
+    ws2812_frame_buffer[i]   = r;
+    ws2812_frame_buffer[i+1] = g;
+    ws2812_frame_buffer[i+2] = b;
+}
+
+
+void render_rgb_test_pattern()
+{
+    for (unsigned int y = 0; y < FB_HEIGHT; y++) {
+        for (unsigned int x = 0; x < FB_WIDTH; x+=3) {
+            ws2812_putpixel(x,   y, 2, 0, 0);
+            ws2812_putpixel(x+1, y, 0, 2, 0);
+            ws2812_putpixel(x+2, y, 0, 0, 2);
+        }
+    }
+}
+
+
+void render_rainbow_test_pattern()
+{
+}
+
 
 int main()
 {
@@ -220,20 +249,14 @@ int main()
 
     ws2812_init_buffers();
 
-    for(unsigned i = 0; i < LED_COUNT; i++) {
-        ws2812_frame_buffer[i*3] = 0;
-        ws2812_frame_buffer[i*3+1] = 0;
-        ws2812_frame_buffer[i*3+2] = 0;
-    }
-
-
-
 
     // Nothing to do here
     while(42) {
-        for(unsigned int i = 0; i < 8000000; i++) {
+        for(unsigned int _i = 0; _i < 8000000; _i++) {
             __asm__("nop");
         }
+
+        render_rgb_test_pattern();
 
         ws2812_tx();
     }
