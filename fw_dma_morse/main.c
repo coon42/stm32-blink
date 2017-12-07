@@ -90,7 +90,7 @@ void init_dma()
 
     // Source and Destination
     dma_set_memory_address(DMA1, DMA_CHANNEL3,     (uint32_t)&msg_buf);
-    dma_set_peripheral_address(DMA1, DMA_CHANNEL3, (uint32_t)&TIM3_CCR1);
+    dma_set_peripheral_address(DMA1, DMA_CHANNEL3, (uint32_t)&TIM3_CCR2);
 
     // Length
     dma_set_number_of_data(DMA1, DMA_CHANNEL3, MSG_LEN);
@@ -142,7 +142,7 @@ void init_blink()
     TIM3_PSC = 549; // 0.5s
 
     // Set compare value
-    TIM3_CCR1 = 0;
+    TIM3_CCR2 = 0;
 
     // Enable timer
     TIM3_CR1 |= TIM_CR1_CEN;
@@ -156,10 +156,10 @@ void tim3_isr()
         TIM3_SR &= ~TIM_SR_UIF; // Clear flag
     }
 
-    if(TIM3_SR & TIM_SR_CC1IF) {
+    if(TIM3_SR & TIM_SR_CC2IF) {
         // Compare flag triggered, pulse off
         gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
-        TIM3_SR &= ~TIM_SR_CC1IF; // Clear flag
+        TIM3_SR &= ~TIM_SR_CC2IF; // Clear flag
     }
 }
 
