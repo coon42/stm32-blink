@@ -269,13 +269,13 @@ int main()
 
     // Nothing to do here
     while(42) {
-        for(unsigned int _i = 0; _i < 800000; _i++) {
+        for(unsigned int _i = 0; _i < 80000; _i++) {
             __asm__("nop");
         }
 
-        // render_rainbow_test_pattern(t);
-        render_rgb_test_pattern();
-        t += 0.01;
+        render_rainbow_test_pattern(t);
+        // render_rgb_test_pattern();
+        t += 0.02;
         ws2812_tx();
     }
 
