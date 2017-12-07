@@ -1,9 +1,12 @@
 
+#include <math.h>
+
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/dma.h>
+
 
 
 // Timings
@@ -14,7 +17,8 @@
 #define FB_WIDTH 8
 #define FB_HEIGHT 8
 
-#define FB_SIZE (FB_WIDTH * FB_HEIGHT * 3)
+#define FB_LENGTH (FB_WIDTH * FB_HEIGHT)
+#define FB_SIZE (FB_LENGTH * 3)
 
 // Buffers
 uint8_t ws2812_frame_buffer[FB_SIZE];
@@ -159,7 +163,7 @@ void ws2812_init_buffers()
 
 void ws2812_update_tx_buffer()
 {
-    for(unsigned int i = 0; i < (FB_WIDTH*FB_HEIGHT); i++) {
+    for(unsigned int i = 0; i < FB_LENGTH; i++) {
         uint8_t c;
 
         // G
@@ -234,8 +238,20 @@ void render_rgb_test_pattern()
 }
 
 
-void render_rainbow_test_pattern()
+void render_rainbow_test_pattern(float t)
 {
+    for (unsigned int w = 0; w < FB_LENGTH; w++) {
+        float u = (float)w / (float)FB_LENGTH;
+
+        uint8_t r = (0.5 + 0.5 * sin((u+t)*3.1315*2)) * 15;
+        uint8_t g = (0.5 + 0.5 * sin(((u+t)+0.333)*3.1415*2)) * 15;
+        uint8_t b = (0.5 + 0.5 * sin(((u+t)+0.666)*3.1415*2)) * 15;
+
+        uint8_t x = w % FB_WIDTH;
+        uint8_t y = w / FB_WIDTH;
+
+        ws2812_putpixel(x, y, r, g, b);
+    }
 }
 
 
@@ -249,15 +265,17 @@ int main()
 
     ws2812_init_buffers();
 
+    float t = 0;
 
     // Nothing to do here
     while(42) {
-        for(unsigned int _i = 0; _i < 8000000; _i++) {
+        for(unsigned int _i = 0; _i < 800000; _i++) {
             __asm__("nop");
         }
 
+        // render_rainbow_test_pattern(t);
         render_rgb_test_pattern();
-
+        t += 0.01;
         ws2812_tx();
     }
 

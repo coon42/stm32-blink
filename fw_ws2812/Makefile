@@ -33,6 +33,9 @@ CFLAGS += --static -nostartfiles
 LDFLAGS += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 LDFLAGS += -lopencm3_stm32f1 
 
+# Sigh
+LDFLAGS += -lm
+
 
 all: main.elf
 
