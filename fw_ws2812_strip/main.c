@@ -14,8 +14,9 @@
 #define T_HI    50
 #define T_TOTAL 90
 
-#define FB_WIDTH 8
-#define FB_HEIGHT 8
+
+#define FB_WIDTH 54
+#define FB_HEIGHT 1
 
 #define FB_LENGTH (FB_WIDTH * FB_HEIGHT)
 #define FB_SIZE (FB_LENGTH * 3)
@@ -275,7 +276,7 @@ int main()
 
         render_rainbow_test_pattern(t);
         // render_rgb_test_pattern();
-        t += 0.02;
+        t += 0.01;
         ws2812_tx();
     }
 
