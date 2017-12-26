@@ -13,13 +13,6 @@
 #define T_HI    50
 #define T_TOTAL 90
 
-// Framebuffer
-#define FB_WIDTH 8
-#define FB_HEIGHT 8
-
-#define FB_LENGTH (FB_WIDTH * FB_HEIGHT)
-#define FB_SIZE (FB_LENGTH * 3)
-
 // Ports
 #define WS2812_TX_RCC   RCC_GPIOA
 #define WS2812_TX_PORT  GPIOA
@@ -31,8 +24,8 @@
 
 
 // Buffers
-uint8_t ws2812_frame_buffer[FB_SIZE];
-uint8_t ws2812_tx_buffer[FB_SIZE*8];
+uint8_t ws2812_frame_buffer[WS2812_FB_SIZE];
+uint8_t ws2812_tx_buffer[WS2812_FB_SIZE*8];
 uint8_t ws2812_timings[] = {T_LO, T_HI};
 
 
@@ -46,11 +39,13 @@ void _init_io()
     // Setup GPIO:
     // Use alternate function of GPIOA7 (TIM3 PWM, CH2)
     gpio_set_mode(WS2812_TX_PORT,
+                  GPIO_MODE_OUTPUT_50_MHZ,
                   GPIO_CNF_OUTPUT_ALTFN_PUSHPULL,
                   WS2812_TX_PIN);
 
     // Use on board status LED on GPIOC13 for some status info
     gpio_set_mode(WS2812_STATUS_PORT,
+                  GPIO_MODE_OUTPUT_2_MHZ,
                   GPIO_CNF_OUTPUT_PUSHPULL,
                   WS2812_STATUS_PIN);
 }
@@ -76,7 +71,7 @@ void _init_dma()
     dma_set_peripheral_address(DMA1, DMA_CHANNEL3, (uint32_t)&TIM3_CCR2);
 
     // Length
-    dma_set_number_of_data(DMA1, DMA_CHANNEL3, FB_SIZE*8);
+    dma_set_number_of_data(DMA1, DMA_CHANNEL3, WS2812_FB_SIZE*8);
 
     // Repeat and increment pointer with each request
     dma_enable_circular_mode(DMA1, DMA_CHANNEL3);
@@ -125,11 +120,11 @@ void _init_pwm()
 
 void _init_buffers()
 {
-    for(unsigned int i = 0; i < FB_SIZE; i++) {
+    for(unsigned int i = 0; i < WS2812_FB_SIZE; i++) {
         ws2812_frame_buffer[i] = 0;
     }
 
-    for(unsigned int i = 0; i < FB_SIZE*8; i++) {
+    for(unsigned int i = 0; i < WS2812_FB_SIZE*8; i++) {
         ws2812_tx_buffer[i] = 0;
     }
 }
@@ -146,7 +141,7 @@ void ws2812_init()
 
 void _update_tx_buffer()
 {
-    for(unsigned int i = 0; i < FB_LENGTH; i++) {
+    for(unsigned int i = 0; i < WS2812_FB_LENGTH; i++) {
         uint8_t c;
 
         // G
@@ -200,7 +195,7 @@ void dma1_channel3_isr()
         TIM3_CCR2 = 0;
         TIM3_CR1 &= ~TIM_CR1_CEN;
 
-        gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
+        gpio_set(WS2812_STATUS_PORT, WS2812_STATUS_PIN);
     }
 }
 
@@ -208,7 +203,7 @@ void dma1_channel3_isr()
 void ws2812_putpixel(uint16_t x, uint16_t y,
                      uint8_t r, uint8_t g, uint8_t b)
 {
-    uint32_t i = (y * FB_WIDTH * 3) + (x * 3);
+    uint32_t i = (y * WS2812_FB_WIDTH * 3) + (x * 3);
     ws2812_frame_buffer[i]   = r;
     ws2812_frame_buffer[i+1] = g;
     ws2812_frame_buffer[i+2] = b;
@@ -216,7 +211,7 @@ void ws2812_putpixel(uint16_t x, uint16_t y,
 
 void ws2812_tx()
 {
-    gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
+    gpio_clear(WS2812_STATUS_PORT, WS2812_STATUS_PIN);
 
     _update_tx_buffer();
 
