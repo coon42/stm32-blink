@@ -41,8 +41,9 @@ all: main.elf
 
 
 main.elf: main.c 
+	$(CC) $(CFLAGS) -c -o ws2812.o ws2812.c
 	$(CC) $(CFLAGS) -c -o main.o main.c
-	$(CC) $(CFLAGS) -o main.elf main.o $(LDFLAGS)
+	$(CC) $(CFLAGS) -o main.elf main.o ws2812.o $(LDFLAGS)
 
 	$(OBJCOPY) -O ihex $@ $(@:.elf=.hex)
 	$(OBJCOPY) -O binary $@ $(@:.elf=.bin)

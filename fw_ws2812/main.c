@@ -2,10 +2,8 @@
 #include <math.h>
 
 #include <libopencm3/stm32/rcc.h>
-#include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/timer.h>
-#include <libopencm3/cm3/nvic.h>
-#include <libopencm3/stm32/dma.h>
+
+#include "ws2812.h"
 
 
 /*
@@ -23,8 +21,8 @@ void init()
 
 void render_rgb_test_pattern()
 {
-    for (unsigned int y = 0; y < FB_HEIGHT; y++) {
-        for (unsigned int x = 0; x < FB_WIDTH; x+=3) {
+    for (unsigned int y = 0; y < WS2812_FB_HEIGHT; y++) {
+        for (unsigned int x = 0; x < WS2812_FB_WIDTH; x+=3) {
             ws2812_putpixel(x,   y, 2, 0, 0);
             ws2812_putpixel(x+1, y, 0, 2, 0);
             ws2812_putpixel(x+2, y, 0, 0, 2);
@@ -35,15 +33,15 @@ void render_rgb_test_pattern()
 
 void render_rainbow_test_pattern(float t)
 {
-    for (unsigned int w = 0; w < FB_LENGTH; w++) {
-        float u = (float)w / (float)FB_LENGTH;
+    for (unsigned int w = 0; w < WS2812_FB_LENGTH; w++) {
+        float u = (float)w / (float)WS2812_FB_LENGTH;
 
         uint8_t r = (0.5 + 0.5 * sin((u+t)*3.1315*2)) * 15;
         uint8_t g = (0.5 + 0.5 * sin(((u+t)+0.333)*3.1415*2)) * 15;
         uint8_t b = (0.5 + 0.5 * sin(((u+t)+0.666)*3.1415*2)) * 15;
 
-        uint8_t x = w % FB_WIDTH;
-        uint8_t y = w / FB_WIDTH;
+        uint8_t x = w % WS2812_FB_WIDTH;
+        uint8_t y = w / WS2812_FB_WIDTH;
 
         ws2812_putpixel(x, y, r, g, b);
     }
