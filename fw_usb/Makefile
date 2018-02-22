@@ -37,7 +37,7 @@ LDFLAGS += -lopencm3_stm32f1 -lm
 all: main.elf
 
 
-main.elf: main.c 
+main.elf: main.c usb_serial.c
 	$(CC) $(CFLAGS) -c -o usb_serial.o usb_serial.c
 	$(CC) $(CFLAGS) -c -o main.o main.c
 	$(CC) $(CFLAGS) -o main.elf main.o usb_serial.o $(LDFLAGS)

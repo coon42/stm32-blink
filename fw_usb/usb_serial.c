@@ -20,7 +20,17 @@
 
 #define USBD_PORT GPIOA
 #define USBDM     GPIO11
-#define USBDP     GPIO11
+#define USBDP     GPIO12
+
+#define RX_ECHO     1
+#define RX_BUF_LEN  256
+
+static char    _rx_tmp[RX_BUF_LEN];
+static char    _rx_buf[RX_BUF_LEN];
+
+static size_t  _rx_tmp_len;
+static uint8_t _rx_buf_ready;
+
 
 static const struct usb_device_descriptor device_descriptor = {
 	.bLength = USB_DT_DEVICE_SIZE,
@@ -203,19 +213,48 @@ static int cdcacm_control_request(usbd_device *usbd_dev,
 	return 0;
 }
 
+
 static void cdcacm_data_rx_cb(usbd_device *usbd_dev, uint8_t ep)
 {
-	(void)ep;
-	(void)usbd_dev;
+	// (void)ep;
+	// (void)usbd_dev;
 
 	char buf[64];
+    char txbuf[255];
+
 	int len = usbd_ep_read_packet(usbd_dev, 0x01, buf, 64);
 
 	if (len) {
-        char *buf2 = "fnord\n";
-		// usbd_ep_write_packet(usbd_dev, 0x82, buf, 7);
-		usbd_ep_write_packet(usbd_dev, 0x82, buf2, 7);
-		buf[len] = 0;
+        // We received data, let's handle it
+        for (uint8_t i = 0; i < len; i++) {
+            // Discard newlines
+            if (buf[i] == '\n') {
+                continue;
+            }
+
+            // Packets are delimited by a CR
+            if (buf[i] == '\r' || buf[i] == '\0') {
+                // Copy contents into target buffer
+                strncpy(_rx_buf, _rx_tmp, RX_BUF_LEN);
+
+                // Mark as ready
+                _rx_buf_ready = 1;
+
+                // Clear tmp
+                memset(_rx_tmp, 0, RX_BUF_LEN);
+                _rx_tmp_len = 0;
+
+                continue;
+            }
+
+            // Append incoming data to packet
+            _rx_tmp[_rx_tmp_len] = buf[i];
+            _rx_tmp_len++;
+        }
+
+        #if RX_ECHO == 1
+		usbd_ep_write_packet(usbd_dev, 0x82, buf, len);
+        #endif
 	}
 }
 
@@ -238,18 +277,58 @@ static void cdcacm_set_config(usbd_device *usbd_dev, uint16_t wValue)
 }
 
 
+const char* usb_serial_rx()
+{
+    if(_rx_buf_ready) {
+        _rx_buf_ready = 0;
+        return _rx_buf;
+    }
+
+    return NULL;
+}
+
+void usb_serial_tx(usbd_device *dev, const char *data)
+{
+    size_t data_len = strlen(data);
+    size_t tx_total = 0;
+    char tx_buf[64];
+
+    size_t i = 0;
+
+    while (tx_total < data_len) {
+        size_t tx_len = data_len - tx_total;
+        if (tx_len > 63) {
+            tx_len = 63;
+        }
+
+        memset(tx_buf, 0, 64);
+        strncpy(tx_buf, data + tx_total, 64);
+
+        tx_total += usbd_ep_write_packet(dev, 0x82, tx_buf, tx_len);
+    }
+}
+
+
 usbd_device *usb_serial_init()
 {
 	usbd_device *usbd_dev;
 
 	rcc_periph_clock_enable(RCC_GPIOA);
 
-    // Pull down D-
-	gpio_set(USBD_PORT, USBDM);
+    // Initialize buffers
+    memset(_rx_tmp, 0, RX_BUF_LEN);
+    memset(_rx_buf, 0, RX_BUF_LEN);
+
+    _rx_tmp_len = 0;
+    _rx_buf_ready = 0;
+
+    // Pull up D+
 	gpio_set_mode(USBD_PORT,
                   GPIO_MODE_OUTPUT_2_MHZ,
 		          GPIO_CNF_OUTPUT_PUSHPULL,
-                  USBDM);
+                  USBDP);
+
+    gpio_set(USBD_PORT, USBDP);
 
     // Initialize usb device
 	usbd_dev = usbd_init(&st_usbfs_v1_usb_driver,
@@ -266,7 +345,7 @@ usbd_device *usb_serial_init()
     }
 
     // Pull down
-    gpio_clear(USBD_PORT, USBDM);
+    gpio_clear(USBD_PORT, USBDP);
 
     return usbd_dev;
 }

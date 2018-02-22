@@ -30,19 +30,20 @@
 int main(void)
 {
 	int i;
+    const char* line;
 
     rcc_clock_setup_in_hse_8mhz_out_72mhz();
 	usbd_device *usbd_dev = usb_serial_init();
 
 	while (1) {
 		usbd_poll(usbd_dev);
-        /*
-        if (i % 5000 == 0) {
-            char buf2[80];
-            sprintf(buf2, "fnord %d\r\n", i);
-            usbd_ep_write_packet(usbd_dev, 0x82, buf2, strlen(buf2));
+
+        line = usb_serial_rx();
+        if (line) {
+            usb_serial_tx(usbd_dev, "Received a line: ");
+            usb_serial_tx(usbd_dev, line);
+            usb_serial_tx(usbd_dev, "\r\n");
         }
-        */
 
         i++;
     }
