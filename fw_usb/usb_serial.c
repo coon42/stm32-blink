@@ -176,13 +176,10 @@ uint8_t usbd_control_buffer[128];
 
 static int cdcacm_control_request(usbd_device *usbd_dev,
                                   struct usb_setup_data *req,
-                                  int8_t **buf,
-		                          int16_t *len,
-                                  void (**complete)(usbd_device *usbd_dev, struct usb_setup_data *req))
+                                  uint8_t **buf,
+                                  uint16_t *len,
+                                  usbd_control_complete_callback *complete)
 {
-	(void)complete;
-	(void)buf;
-	(void)usbd_dev;
 
 	switch (req->bRequest) {
 	case USB_CDC_REQ_SET_CONTROL_LINE_STATE: {
@@ -216,11 +213,7 @@ static int cdcacm_control_request(usbd_device *usbd_dev,
 
 static void cdcacm_data_rx_cb(usbd_device *usbd_dev, uint8_t ep)
 {
-	// (void)ep;
-	// (void)usbd_dev;
-
 	char buf[64];
-    char txbuf[255];
 
 	int len = usbd_ep_read_packet(usbd_dev, 0x01, buf, 64);
 
@@ -261,9 +254,6 @@ static void cdcacm_data_rx_cb(usbd_device *usbd_dev, uint8_t ep)
 
 static void cdcacm_set_config(usbd_device *usbd_dev, uint16_t wValue)
 {
-	(void)wValue;
-	(void)usbd_dev;
-
 	usbd_ep_setup(usbd_dev, 0x01, USB_ENDPOINT_ATTR_BULK, 64, cdcacm_data_rx_cb);
 	usbd_ep_setup(usbd_dev, 0x82, USB_ENDPOINT_ATTR_BULK, 64, NULL);
 	usbd_ep_setup(usbd_dev, 0x83, USB_ENDPOINT_ATTR_INTERRUPT, 16, NULL);
@@ -293,8 +283,6 @@ void usb_serial_tx(usbd_device *dev, const char *data)
     size_t tx_total = 0;
     char tx_buf[64];
 
-    size_t i = 0;
-
     while (tx_total < data_len) {
         size_t tx_len = data_len - tx_total;
         if (tx_len > 63) {
@@ -322,13 +310,19 @@ usbd_device *usb_serial_init()
     _rx_tmp_len = 0;
     _rx_buf_ready = 0;
 
-    // Pull up D+
+    // D+
 	gpio_set_mode(USBD_PORT,
                   GPIO_MODE_OUTPUT_2_MHZ,
 		          GPIO_CNF_OUTPUT_PUSHPULL,
                   USBDP);
 
+
+    gpio_clear(USBD_PORT, USBDP);
+	for (int i = 0; i < 0x800000; i++) {
+		__asm__("nop");
+    }
     gpio_set(USBD_PORT, USBDP);
+
 
     // Initialize usb device
 	usbd_dev = usbd_init(&st_usbfs_v1_usb_driver,
