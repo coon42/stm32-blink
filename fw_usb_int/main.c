@@ -45,7 +45,6 @@ int main(void)
         }
 
         if( i % 10000  == 0 ) {
-            // usb_serial_tx("fnord42\r\n");
             printf("Fnord 42 :: %d\r\n", i);
         }
 
