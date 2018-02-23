@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
@@ -430,3 +431,17 @@ usbd_device *usb_serial_init()
     return usbd_dev;
 }
 
+
+/*
+ * Override _write and redirect stdout to usb
+ */
+int _write(int file, char* data, int len)
+{
+    if (file < 2) {
+        return usb_serial_tx(data, len);
+    }
+
+    // Set error and return failure
+    errno = EIO;
+    return -1;
+}

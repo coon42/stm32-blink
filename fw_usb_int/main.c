@@ -20,26 +20,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <errno.h>
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 
 #include "usb_serial.h"
-
-/*
- * Override _write and redirect stdout to usb
- */
-int _write(int file, char* data, int len)
-{
-    if (file < 2) {
-        return usb_serial_tx(data, len);
-    }
-
-    // Set error and return failure
-    errno = EIO;
-    return -1;
-}
 
 
 int main(void)
@@ -47,21 +32,21 @@ int main(void)
 	int i;
     const char* line;
 
+    // Clock Setup
     rcc_clock_setup_in_hse_8mhz_out_72mhz();
-	usbd_device *usbd_dev = usb_serial_init();
+
+    // Initialize USB
+	usb_serial_init();
 
 	while (1) {
-		// usbd_poll(usbd_dev);
-
         /*
         line = usb_serial_rx();
         if (line) {
-            usb_serial_tx(usbd_dev, "Received a line: ");
-            usb_serial_tx(usbd_dev, line);
-            usb_serial_tx(usbd_dev, "\r\n");
+            printf("Received a line: %s\r\n", line);
         }
         */
-        if( i % 10000  == 0 ) {
+
+        if( i % 100000  == 0 ) {
             // usb_serial_tx("fnord42\r\n");
             printf("Fnord 42 :: %d\r\n", i);
         }
