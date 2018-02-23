@@ -351,13 +351,12 @@ void usb_timer_init()
     timer_reset(TIM4);
 
     // Edge aligned
-    // Div: 4
-    TIM4_CR1 |= TIM_CR1_CKD_CK_INT_MUL_4 |
+    TIM4_CR1 |= TIM_CR1_CKD_CK_INT |
                 TIM_CR1_CMS_EDGE |
                 TIM_CR1_DIR_UP;
 
-    TIM4_PSC = 0;
-    TIM4_ARR = 20000;
+    TIM4_PSC = 32;
+    TIM4_ARR = 65535;
 
     // Interrupts:
     //  - Update / Overflow Event (UIE)
@@ -400,7 +399,7 @@ usbd_device *usb_serial_init()
 
     // Pull down D+
     gpio_clear(USBD_PORT, USBDP);
-	for (int i = 0; i < 0x800000; i++) {
+	for (int i = 0; i < 0x10000; i++) {
 		__asm__("nop");
     }
     gpio_set(USBD_PORT, USBDP);
@@ -421,7 +420,7 @@ usbd_device *usb_serial_init()
     gpio_clear(USBD_PORT, USBDP);
 
     // Poll a bit
-	for (int i = 0; i < 0x800000; i++) {
+	for (int i = 0; i < 0x80000; i++) {
         usbd_poll(usbd_dev);
     }
 

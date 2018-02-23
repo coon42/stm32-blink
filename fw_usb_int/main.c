@@ -39,14 +39,12 @@ int main(void)
 	usb_serial_init();
 
 	while (1) {
-        /*
         line = usb_serial_rx();
         if (line) {
             printf("Received a line: %s\r\n", line);
         }
-        */
 
-        if( i % 100000  == 0 ) {
+        if( i % 10000  == 0 ) {
             // usb_serial_tx("fnord42\r\n");
             printf("Fnord 42 :: %d\r\n", i);
         }
