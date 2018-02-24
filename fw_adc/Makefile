@@ -33,14 +33,19 @@ CFLAGS += --static -nostartfiles
 LDFLAGS += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 LDFLAGS += -lopencm3_stm32f1 -lm
 
+AS = arm-none-eabi-as
 
 all: main.elf
 
 
-main.elf: main.c usb_serial.c
+cr4_fft_1024_stm32.o: cr4_fft_1024_stm32.s
+	$(AS) -o cr4_fft_1024_stm32.o cr4_fft_1024_stm32.s
+
+
+main.elf: main.c usb_serial.c cr4_fft_1024_stm32.o
 	$(CC) $(CFLAGS) -c -o usb_serial.o usb_serial.c
 	$(CC) $(CFLAGS) -c -o main.o main.c
-	$(CC) $(CFLAGS) -o main.elf main.o usb_serial.o $(LDFLAGS)
+	$(CC) $(CFLAGS) -o main.elf main.o usb_serial.o cr4_fft_1024_stm32.o $(LDFLAGS)
 
 	$(OBJCOPY) -O ihex $@ $(@:.elf=.hex)
 	$(OBJCOPY) -O binary $@ $(@:.elf=.bin)
