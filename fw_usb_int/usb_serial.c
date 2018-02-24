@@ -298,7 +298,12 @@ size_t usb_serial_tx(const char *data, size_t len)
         memset(tx_buf, 0, 64);
         strncpy(tx_buf, data + tx_total, 64);
 
-        tx_total += usbd_ep_write_packet(__USBDEV, 0x82, tx_buf, tx_len);
+        size_t res = usbd_ep_write_packet(__USBDEV, 0x82, tx_buf, tx_len);
+        if (res == 0) {
+            return tx_total; // Something failed
+        }
+
+        tx_total += res;
     }
 
     return tx_total;
