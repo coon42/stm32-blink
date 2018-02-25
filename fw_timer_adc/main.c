@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/rcc.h>
@@ -15,23 +16,25 @@
 #include <libopencm3/stm32/timer.h>
 
 #include "usb_serial.h"
-#include "cr4_fft_1024_stm32.h"
+#include "cr4_fft.h"
 #include "sqrt.h"
 
 #define MIC_RCC  RCC_GPIOA
 #define MIC_PORT GPIOA
 #define MIC_PIN  GPIO0
 
+#define FFT_LEN 1024
 #define SAMPLE_BUF_LEN 1024
 volatile uint16_t _adc_samples[SAMPLE_BUF_LEN];
 uint32_t _fft_data[SAMPLE_BUF_LEN];
 uint32_t _fft_result[SAMPLE_BUF_LEN];
+uint16_t _fft_window[SAMPLE_BUF_LEN];
 
 #define C_REAL(X) (X & 0xffff)
 #define C_IMAG(X) (X >> 16)
 
 
-void fft_magnitude(uint32_t *values, size_t len)
+void fft_magnitude(uint32_t* values, size_t len)
 {
     for (size_t i = 0; i < len; i++) {
         int16_t rl = C_REAL(values[i]);
@@ -41,6 +44,29 @@ void fft_magnitude(uint32_t *values, size_t len)
     }
 }
 
+
+/*
+ * Precalculate hamming window weights, so we can just
+ * multiply adc values with the window.
+ */
+void fft_hamming_init(uint16_t* window, size_t len)
+{
+    for(size_t i = 0; i < SAMPLE_BUF_LEN; i++) {
+        window[i] = 0;
+    }
+
+
+    for(size_t i = 0; i < len; i++) {
+        window[i] = (0.53 - 0.46 * cos((2.0*M_PI*i) / (len-1))) * 65535;
+    }
+}
+
+void fft_hamming_apply(uint32_t* values, uint16_t* window, size_t len)
+{
+    for(size_t i = 0; i < len; i++) {
+        values[i] = ((values[i] * window[i]) >> 16) & 0xffff;
+    }
+}
 
 void adc_gpio_init()
 {
@@ -65,14 +91,26 @@ void adc_timer_init()
                    TIM_CR1_CMS_EDGE,
                    TIM_CR1_DIR_UP);
 
+    timer_set_prescaler(TIM2, 0);
 
     // 72 MHz clock, 40 kHz sampling freq,
     // 1800 cycles
-    timer_set_prescaler(TIM1, 0);
-    timer_set_period(TIM2, 1800);
+    // timer_set_period(TIM2, 1800);
+    // timer_set_oc_value(TIM2, TIM_OC2, 1800);
+
+    // Try 30 kHz
+    timer_set_period(TIM2, 2400);
+    timer_set_oc_value(TIM2, TIM_OC2, 2400);
+
+    // Try 20 kHz
+    // timer_set_period(TIM2, 3600);
+    // timer_set_oc_value(TIM2, TIM_OC2, 3600);
+
+    // Try 6 kHz
+    // timer_set_period(TIM2, 12000);
+    // timer_set_oc_value(TIM2, TIM_OC2, 12000);
 
     // Enable output compare event
-    timer_set_oc_value(TIM2, TIM_OC2, 1800);
     timer_set_oc_mode(TIM2,  TIM_OC2, TIM_OCM_PWM1);
     timer_disable_oc_clear(TIM2, TIM_OC2);
     timer_enable_oc_output(TIM2, TIM_OC2);
@@ -107,7 +145,8 @@ void adc_init()
     adc_disable_scan_mode(ADC1);
     adc_set_right_aligned(ADC1);
 
-    adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_1DOT5CYC);
+    // adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_1DOT5CYC);
+    adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_55DOT5CYC);
 
     // Single conversion on external trigger
     adc_enable_external_trigger_regular(ADC1, ADC_CR2_EXTSEL_TIM2_CC2);
@@ -133,7 +172,6 @@ void adc_init()
     adc_calibrate(ADC1);
 
     // Start
-    // adc_start_conversion_regular(ADC1);
     adc_timer_start();
 }
 
@@ -158,14 +196,19 @@ void dma_init()
     // We read into mem
     dma_set_read_from_peripheral(DMA1, DMA_CHANNEL1);
 
-    dma_set_number_of_data(DMA1, DMA_CHANNEL1, SAMPLE_BUF_LEN);
-
     // Increment addr
     dma_enable_memory_increment_mode(DMA1, DMA_CHANNEL1);
 
     // Enable IRQ
     nvic_enable_irq(NVIC_DMA1_CHANNEL1_IRQ);
     dma_enable_transfer_complete_interrupt(DMA1, DMA_CHANNEL1);
+}
+
+
+void adc_dma_transfer_start()
+{
+    dma_set_number_of_data(DMA1, DMA_CHANNEL1, FFT_LEN);
+    dma_enable_channel(DMA1, DMA_CHANNEL1);
 }
 
 
@@ -186,16 +229,18 @@ void dma1_channel1_isr()
         // Fill buffer
         for(uint16_t i = 0; i < SAMPLE_BUF_LEN; i++) {
             // remove dc offset and amplify
-            // _fft_data[i] = (512 * (_adc_samples[i] - dc_offset)) << 16;
+            // _fft_data[i] = _adc_samples[i]; // (255 * (_adc_samples[i] - dc_offset));
 
             // keep dc offset
-            _fft_data[i] = (1024 * _adc_samples[i]);
+            _fft_data[i] = (12 * _adc_samples[i % FFT_LEN]) & 0xffff;
         }
 
         // FFT
+        fft_hamming_apply(_fft_data, _fft_window, 1024);
         cr4_fft_1024_stm32((void*)_fft_result, (void*)_fft_data, 1024);
-        fft_magnitude(_fft_result, 512);
-        for (int i = 0; i < 512; i++) {
+
+        fft_magnitude(_fft_result, FFT_LEN/2);
+        for (int i = 0; i < FFT_LEN/2; i++) {
             printf("%d %lu\r\n", i, _fft_result[i]);
         }
 
@@ -226,8 +271,7 @@ void dma1_channel1_isr()
         dma_clear_interrupt_flags(DMA1, DMA_CHANNEL1, DMA_TCIF);
 
         // Enable Transfer
-        dma_set_number_of_data(DMA1, DMA_CHANNEL1, SAMPLE_BUF_LEN);
-        dma_enable_channel(DMA1, DMA_CHANNEL1);
+        adc_dma_transfer_start();
     }
 }
 
@@ -250,9 +294,12 @@ int main(void)
     // Initialize ADC
     adc_init();
 
+    // Init window
+    fft_hamming_init(_fft_window, 1024);
+
     // Start fetching data
     printf("Starting ADC read\r\n");
-    dma_enable_channel(DMA1, DMA_CHANNEL1);
+    adc_dma_transfer_start();
 
 	while (1) {
         /*

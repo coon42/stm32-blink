@@ -1,3 +1,6 @@
+#ifndef __CR4_FFT_STM32__H__
+#define __CR4_FFT_STM32__H__
+
 /*
 
 x[N] be the time signal samples. To use the FFT functions of the DSP library, the
@@ -13,5 +16,9 @@ following conditions must be satisfied:
 /* 1024 points */
 // extern "C" {
 void cr4_fft_1024_stm32(void *pssOUT, void *pssIN, unsigned short Nbin);
+void cr4_fft_256_stm32(void *pssOUT, void *pssIN, unsigned short Nbin);
+void cr4_fft_64_stm32(void *pssOUT, void *pssIN, unsigned short Nbin);
 // }
+
+#endif
 

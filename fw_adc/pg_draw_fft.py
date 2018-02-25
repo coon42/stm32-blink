@@ -8,15 +8,20 @@ import serial
 
 
 def draw_bucket(display, i, v):
-    # inv log transform
     x = v
-    # if x > 800:
-    #    x = 800
-
     y = 1024 * (i/512.0);
     rect = (10, y, x, 1)
 
     pygame.draw.rect(display, (255.0, 255.0, 255.0), rect)
+
+
+def draw_total(display, buckets):
+    total = sum(buckets[10:]) - len(buckets)
+
+    y = total
+
+    rect = (1020, 0, 1, y)
+    pygame.draw.rect(display, (255.0, 0, 0), rect)
 
 
 def draw_buckets(display, buckets):
@@ -24,8 +29,23 @@ def draw_buckets(display, buckets):
     for i, v in enumerate(buckets):
         draw_bucket(display, i, v)
 
+    # Calculate total energy
+    draw_total(display, buckets)
+
+    draw_downsampled(display, buckets)
+
     pygame.display.update()
 
+
+def draw_downsampled(display, buckets):
+    dbuckets = []
+    for i in range(2, len(buckets), 8):
+        dbuckets += [sum(buckets[i:i+8])]
+
+    for i, v in enumerate(dbuckets):
+        y = v
+        rect = (100 + i*10, 1020, 8, -y)
+        pygame.draw.rect(display, (0, 0, 255.0), rect)
 
 
 def receive(port, display):

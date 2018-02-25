@@ -4,6 +4,7 @@ OPENCM3_LIBRARY_PATH ?= $(OPENCM3_PATH)/lib
 OPENCM3_INCLUDE_PATH ?= $(OPENCM3_PATH)/include
 
 CC      := arm-none-eabi-gcc
+AS		:= arm-none-eabi-as
 OBJCOPY := arm-none-eabi-objcopy
 OBJDUMP := arm-none-eabi-objdump
 SIZE    := arm-none-eabi-size
@@ -33,13 +34,13 @@ CFLAGS += --static -nostartfiles
 LDFLAGS += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 LDFLAGS += -lopencm3_stm32f1 -lm
 
-AS = arm-none-eabi-as
 
 all: main.elf
 
 
 cr4_fft_1024_stm32.o: cr4_fft_1024_stm32.s
 	$(AS) -o cr4_fft_1024_stm32.o cr4_fft_1024_stm32.s
+
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
