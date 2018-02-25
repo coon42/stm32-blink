@@ -12,7 +12,7 @@ def downsample(bin_size):
     for i, val in enumerate(buckets):
         avg += val / bin_size
         if (i+1) % bin_size == 0:
-            res += [round(avg / 5)]
+            res += [round(avg / 160)]
 
     return res
 

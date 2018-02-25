@@ -24,8 +24,8 @@
 
 #define SAMPLE_BUF_LEN 1024
 volatile uint16_t _adc_samples[SAMPLE_BUF_LEN];
-volatile uint32_t _fft_data[SAMPLE_BUF_LEN];
-volatile uint32_t _fft_result[SAMPLE_BUF_LEN];
+uint32_t _fft_data[SAMPLE_BUF_LEN];
+uint32_t _fft_result[SAMPLE_BUF_LEN];
 
 #define C_REAL(X) (X & 0xffff)
 #define C_IMAG(X) (X >> 16)
@@ -71,7 +71,8 @@ void adc_timer_init()
     timer_set_prescaler(TIM1, 0);
     timer_set_period(TIM2, 1800);
 
-    timer_set_oc_value(TIM2, TIM_OC2, 1800); // Enable output compare event
+    // Enable output compare event
+    timer_set_oc_value(TIM2, TIM_OC2, 1800);
     timer_set_oc_mode(TIM2,  TIM_OC2, TIM_OCM_PWM1);
     timer_disable_oc_clear(TIM2, TIM_OC2);
     timer_enable_oc_output(TIM2, TIM_OC2);
@@ -175,15 +176,28 @@ void dma1_channel1_isr()
         dma_disable_channel(DMA1, DMA_CHANNEL1);
 
         // Process signal
-        /*
-        for(uint16_t i = 0; i < SAMPLE_BUF_LEN; i++) {
-            // TODO: Use DMA for this?
-            _fft_data[i] = _adc_samples[i] - 2048; // remove dc offset
+        // Get DC offset
+        uint32_t dc_offset = 0;
+        for(uint16_t i = 0; i < 100; i++) {
+           dc_offset += _adc_samples[i];
         }
-        */
+        dc_offset /= 100;
+
+        // Fill buffer
+        for(uint16_t i = 0; i < SAMPLE_BUF_LEN; i++) {
+            // remove dc offset and amplify
+            // _fft_data[i] = (512 * (_adc_samples[i] - dc_offset)) << 16;
+
+            // keep dc offset
+            _fft_data[i] = (1024 * _adc_samples[i]);
+        }
 
         // FFT
-        // cr4_fft_1024_stm32((void*)_fft_result, (void*)_fft_data, 1024);
+        cr4_fft_1024_stm32((void*)_fft_result, (void*)_fft_data, 1024);
+        fft_magnitude(_fft_result, 512);
+        for (int i = 0; i < 512; i++) {
+            printf("%d %lu\r\n", i, _fft_result[i]);
+        }
 
         /*
         uint16_t max = 0;
@@ -196,20 +210,17 @@ void dma1_channel1_isr()
             avg += _adc_samples[i];
         }
         avg /= SAMPLE_BUF_LEN;
+        printf("%d %d\r\n", max, max - avg);
         */
-        // fft_magnitude(_fft_result, 512);
+
 
         /*
-        for (int i = 0; i < 512; i++) {
-            printf("%d %d\r\n", i, _fft_result[i]);
-        }
-        */
         // Just printout the samples
         for (int i = 0; i < 1024; i++) {
             printf("%d %d\r\n", i, _adc_samples[i]);
         }
+        */
 
-        // printf("%d %d\r\n", max, max - avg);
 
         // Clear transfer complete.
         dma_clear_interrupt_flags(DMA1, DMA_CHANNEL1, DMA_TCIF);
