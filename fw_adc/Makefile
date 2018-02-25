@@ -41,11 +41,12 @@ all: main.elf
 cr4_fft_1024_stm32.o: cr4_fft_1024_stm32.s
 	$(AS) -o cr4_fft_1024_stm32.o cr4_fft_1024_stm32.s
 
+%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $<
 
-main.elf: main.c usb_serial.c cr4_fft_1024_stm32.o
-	$(CC) $(CFLAGS) -c -o usb_serial.o usb_serial.c
-	$(CC) $(CFLAGS) -c -o main.o main.c
-	$(CC) $(CFLAGS) -o main.elf main.o usb_serial.o cr4_fft_1024_stm32.o $(LDFLAGS)
+
+main.elf: main.o usb_serial.o cr4_fft_1024_stm32.o sqrt.o
+	$(CC) $(CFLAGS) -o main.elf main.o usb_serial.o cr4_fft_1024_stm32.o sqrt.o $(LDFLAGS)
 
 	$(OBJCOPY) -O ihex $@ $(@:.elf=.hex)
 	$(OBJCOPY) -O binary $@ $(@:.elf=.bin)

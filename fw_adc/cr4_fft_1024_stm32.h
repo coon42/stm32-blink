@@ -11,7 +11,7 @@ following conditions must be satisfied:
 
 
 /* 1024 points */
-extern "C" {
-	void cr4_fft_1024_stm32(void *pssOUT, void *pssIN, unsigned short Nbin);
-}
+// extern "C" {
+void cr4_fft_1024_stm32(void *pssOUT, void *pssIN, unsigned short Nbin);
+// }
 

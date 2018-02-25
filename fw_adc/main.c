@@ -14,7 +14,8 @@
 #include <libopencm3/stm32/dma.h>
 
 #include "usb_serial.h"
-
+#include "cr4_fft_1024_stm32.h"
+#include "sqrt.h"
 
 #define MIC_RCC  RCC_GPIOA
 #define MIC_PORT GPIOA
@@ -22,6 +23,23 @@
 
 #define SAMPLE_BUF_LEN 1024
 volatile uint16_t _adc_samples[SAMPLE_BUF_LEN];
+volatile uint32_t _fft_data[SAMPLE_BUF_LEN];
+volatile uint32_t _fft_result[SAMPLE_BUF_LEN];
+
+#define C_REAL(X) (X & 0xffff)
+#define C_IMAG(X) (X >> 16)
+
+
+void fft_magnitude(uint32_t *values, size_t len)
+{
+    for (size_t i = 0; i < len; i++) {
+        int16_t rl = C_REAL(values[i]);
+        int16_t im = C_IMAG(values[i]);
+        uint32_t mag = fast_sqrt(rl*rl + im*im);
+        values[i] = mag;
+    }
+}
+
 
 void adc_gpio_init()
 {
@@ -137,6 +155,15 @@ void dma1_channel1_isr()
         dma_disable_channel(DMA1, DMA_CHANNEL1);
 
         // Process signal
+        for(uint16_t i = 0; i < SAMPLE_BUF_LEN; i++) {
+            // TODO: Use DMA for this?
+            _fft_data[i] = _adc_samples[i] - 2048; // remove dc offset
+        }
+
+        // FFT
+        cr4_fft_1024_stm32((void*)_fft_result, (void*)_fft_data, 1024);
+
+        /*
         uint16_t max = 0;
         uint32_t avg = 0;
 
@@ -147,8 +174,19 @@ void dma1_channel1_isr()
             avg += _adc_samples[i];
         }
         avg /= SAMPLE_BUF_LEN;
+        */
+        fft_magnitude(_fft_result, 512);
 
-        printf("%d %d\r\n", max, max - avg);
+        /*
+        for (int i = 0; i < 512; i++) {
+            printf("%d %d\r\n", i, _fft_result[i]);
+        }
+        */
+        for (int i = 0; i < 1024; i++) {
+            printf("%d %d\r\n", i, _adc_samples[i]);
+        }
+
+        // printf("%d %d\r\n", max, max - avg);
 
         // Clear transfer complete.
         dma_clear_interrupt_flags(DMA1, DMA_CHANNEL1, DMA_TCIF);
@@ -158,6 +196,7 @@ void dma1_channel1_isr()
         dma_enable_channel(DMA1, DMA_CHANNEL1);
     }
 }
+
 
 
 int main(void)
