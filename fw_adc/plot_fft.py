@@ -6,13 +6,13 @@ s = serial.Serial("/dev/ttyACM0")
 buckets = list(0 for _ in range(512))
 
 def downsample(bin_size):
-    avg = 0
+    bucket = 0
     res = []
 
     for i, val in enumerate(buckets):
-        avg += val / bin_size
+        bucket += val
         if (i+1) % bin_size == 0:
-            res += [round(avg / 5)]
+            res += [round(bucket / 500)]
 
     return res
 
