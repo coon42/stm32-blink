@@ -95,12 +95,12 @@ void adc_timer_init()
 
     // 72 MHz clock, 40 kHz sampling freq,
     // 1800 cycles
-    // timer_set_period(TIM2, 1800);
-    // timer_set_oc_value(TIM2, TIM_OC2, 1800);
+    timer_set_period(TIM2, 1800);
+    timer_set_oc_value(TIM2, TIM_OC2, 1800);
 
     // Try 30 kHz
-    timer_set_period(TIM2, 2400);
-    timer_set_oc_value(TIM2, TIM_OC2, 2400);
+    // timer_set_period(TIM2, 2400);
+    // timer_set_oc_value(TIM2, TIM_OC2, 2400);
 
     // Try 20 kHz
     // timer_set_period(TIM2, 3600);
@@ -228,11 +228,9 @@ void dma1_channel1_isr()
 
         // Fill buffer
         for(uint16_t i = 0; i < SAMPLE_BUF_LEN; i++) {
-            // remove dc offset and amplify
-            // _fft_data[i] = _adc_samples[i]; // (255 * (_adc_samples[i] - dc_offset));
-
-            // keep dc offset
-            _fft_data[i] = (12 * _adc_samples[i % FFT_LEN]) & 0xffff;
+            // remap [0.0, 0.5, 1.0] represented as [0, 2048, 4096]
+            // to [0, 65535] -> floor(65535 / 2048)
+            _fft_data[i] = (15 * _adc_samples[i % FFT_LEN]) & 0xffff;
         }
 
         // FFT
