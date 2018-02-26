@@ -25,7 +25,7 @@
 
 #define FFT_LEN 1024
 #define SAMPLE_BUF_LEN 1024
-volatile uint16_t _adc_samples[SAMPLE_BUF_LEN];
+uint16_t _adc_samples[SAMPLE_BUF_LEN];
 uint32_t _fft_data[SAMPLE_BUF_LEN];
 uint32_t _fft_result[SAMPLE_BUF_LEN];
 uint16_t _fft_window[SAMPLE_BUF_LEN];
@@ -65,6 +65,24 @@ void fft_hamming_apply(uint32_t* values, uint16_t* window, size_t len)
 {
     for(size_t i = 0; i < len; i++) {
         values[i] = ((values[i] * window[i]) >> 16) & 0xffff;
+    }
+}
+
+
+void adc_gain(uint16_t* values, size_t len, uint16_t gain)
+{
+    // gain 0, 100, 255, .. -> 0.0, 1.0, 2.55, ..
+    for(size_t i = 0; i < len; i++) {
+        int32_t v = 2048 + \
+            ((((int32_t)values[i] - 2048) * (int32_t)gain) / 100);
+        // clipping
+        if (v > 4096) {
+            v = 4096;
+        }
+        else if (v < 0) {
+            v = 0;
+        }
+        values[i] = (uint16_t)v;
     }
 }
 
@@ -218,13 +236,8 @@ void dma1_channel1_isr()
     if (dma_get_interrupt_flag(DMA1, DMA_CHANNEL1, DMA_TCIF)) {
         dma_disable_channel(DMA1, DMA_CHANNEL1);
 
-        // Process signal
-        // Get DC offset
-        uint32_t dc_offset = 0;
-        for(uint16_t i = 0; i < 100; i++) {
-           dc_offset += _adc_samples[i];
-        }
-        dc_offset /= 100;
+        // Add gain to signal
+        adc_gain(_adc_samples, SAMPLE_BUF_LEN, 150);
 
         // Fill buffer
         for(uint16_t i = 0; i < SAMPLE_BUF_LEN; i++) {
