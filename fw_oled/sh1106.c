@@ -77,13 +77,20 @@ void sh1106_init_spi()
  */
 inline void sh1106_tx(uint8_t type, uint8_t b)
 {
+    // We are using 4-wire SPI
+    gpio_clear(SH1106_GPIO_SPI, SH1106_NSS); // !CS
+
     if(type == SH1106_CMD) {
         gpio_set(SH1106_GPIO_CTRL, SH1106_DC);
     } else {
         gpio_clear(SH1106_GPIO_CTRL, SH1106_DC);
     }
 
-    spi_send(SPI1, b);
+    spi_send(SH1106_SPI, b);
+
+    gpio_set(SH1106_GPIO_SPI,  SH1106_NSS);
+    gpio_set(SH1106_GPIO_CTRL, SH1106_DC);
+
 }
 
 
@@ -95,7 +102,7 @@ void sh1106_init_display()
     // 4 wire spi
     gpio_set(SH1106_GPIO_SPI, SH1106_NSS); 
     gpio_clear(SH1106_RCC_GPIO_CTRL, SH1106_DC);
-    gpio_set(SH1106_RCC_GPIO_CTRL, SH1106_RES);
+    gpio_set(SH1106_RCC_GPIO_CTRL, SH1106_RST);
 
                                  // Display initialization sequence
     sh1106_tx(SH1106_CMD, 0xAE); // --turn off oled panel

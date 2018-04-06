@@ -2,12 +2,17 @@
 #define SH1106_H
 
 // -------- Configuration ---------
+#define SSD1306_WIDTH    128
+#define SSD1306_HEIGHT   64
+
 #define SH1106_RCC_GPIO_SPI   RCC_GPIOA
 #define SH1106_RCC_GPIO_CTRL  RCC_GPIOB
 #define SH1106_RCC_SPI        RCC_SPI1
 
 #define SH1106_GPIO_CTRL GPIOB
 #define SH1106_GPIO_SPI  GPIOA
+
+#define SH1106_SPI  SPI1
 
 #define SH1106_NSS  GPIO4 // A04
 #define SH1106_SCK  GPIO5 // A05
