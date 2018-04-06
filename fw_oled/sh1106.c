@@ -9,6 +9,10 @@
 inline void sh1106_tx(uint8_t type, uint8_t b);
 inline void sh1106_set_col_start_addr();
 
+
+static uint8_t sh1106_display_buffer[128][8];
+
+
 void sh1106_init_clocks()
 {
     rcc_periph_clock_enable(SH1106_RCC_GPIO_SPI);
@@ -143,5 +147,19 @@ inline void sh1106_set_col_start_addr()
 {
     sh1106_tx(SH1106_CMD, 0x02);
     sh1106_tx(SH1106_CMD, 0x10);
+}
+
+void sh1106_display_on()
+{
+    sh1106_tx(SH1106_CMD, 0x8D);
+    sh1106_tx(SH1106_CMD, 0x14);
+    sh1106_tx(SH1106_CMD, 0xAF);
+}
+
+void sh1106_display_off()
+{
+    sh1106_tx(SH1106_CMD, 0x8D);
+    sh1106_tx(SH1106_CMD, 0x10);
+    sh1106_tx(SH1106_CMD, 0xAE);
 }
 

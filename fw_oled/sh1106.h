@@ -32,5 +32,8 @@ void sh1106_init_gpio();
 void sh1106_init_spi();
 void sh1106_init_display();
 
+void sh1106_display_on();
+void sh1106_display_off();
+
 #endif
 
