@@ -36,10 +36,17 @@ LDFLAGS += -lopencm3_stm32f1 -lm
 
 all: main.elf
 
+fonts.o: fonts.c
+	$(CC) $(CFLAGS) -c -o fonts.o fonts.c
 
-main.elf: main.c 
+sh1106.o: sh1106.c
+	$(CC) $(CFLAGS) -c -o sh1106.o sh1106.c
+
+main.o: main.c
 	$(CC) $(CFLAGS) -c -o main.o main.c
-	$(CC) $(CFLAGS) -o main.elf main.o $(LDFLAGS)
+
+main.elf: main.o fonts.o sh1106.o
+	$(CC) $(CFLAGS) -o main.elf main.o fonts.o sh1106.o $(LDFLAGS)
 
 	$(OBJCOPY) -O ihex $@ $(@:.elf=.hex)
 	$(OBJCOPY) -O binary $@ $(@:.elf=.bin)
