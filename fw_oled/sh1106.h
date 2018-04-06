@@ -2,8 +2,8 @@
 #define SH1106_H
 
 // -------- Configuration ---------
-#define SSD1306_WIDTH    128
-#define SSD1306_HEIGHT   64
+#define SH1106_WIDTH    128
+#define SH1106_HEIGHT   64
 
 #define SH1106_RCC_GPIO_SPI   RCC_GPIOA
 #define SH1106_RCC_GPIO_CTRL  RCC_GPIOB
@@ -27,13 +27,19 @@
 
 
 // ------- Functions -------
+
+// Initialization
 void sh1106_init_clocks();
 void sh1106_init_gpio();
 void sh1106_init_spi();
 void sh1106_init_display();
 
+// Control
 void sh1106_display_on();
 void sh1106_display_off();
+
+// Drawing
+void sh1106_putpixel(uint8_t x, uint8_t y, uint8_t c);
 
 #endif
 

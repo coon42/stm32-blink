@@ -9,9 +9,7 @@
 inline void sh1106_tx(uint8_t type, uint8_t b);
 inline void sh1106_set_col_start_addr();
 
-
-static uint8_t sh1106_display_buffer[128][8];
-
+static uint8_t _display_buffer[128][8];
 
 void sh1106_init_clocks()
 {
@@ -149,6 +147,9 @@ inline void sh1106_set_col_start_addr()
     sh1106_tx(SH1106_CMD, 0x10);
 }
 
+/*
+ * Tun display on
+ */
 void sh1106_display_on()
 {
     sh1106_tx(SH1106_CMD, 0x8D);
@@ -156,10 +157,58 @@ void sh1106_display_on()
     sh1106_tx(SH1106_CMD, 0xAF);
 }
 
+/*
+ * Turn display off
+ */
 void sh1106_display_off()
 {
     sh1106_tx(SH1106_CMD, 0x8D);
     sh1106_tx(SH1106_CMD, 0x10);
     sh1106_tx(SH1106_CMD, 0xAE);
 }
+
+/*
+ * Update graphics ram
+ */
+void sh1106_update()
+{
+    for(uint8_t i = 0; i < 8; i++) {
+        sh1106_tx(SH1106_CMD, 0x80 + i);
+        sh1106_set_col_start_addr();
+
+        for (uint8_t j = 0; j < 128; j++) {
+            sh1106_tx(SH1106_DATA, _display_buffer[j][i]);
+        };
+    }
+}
+
+/*
+ * Set a pixel in buffer
+ */
+void sh1106_putpixel(uint8_t x, uint8_t y, uint8_t c)
+{
+    if(x > (SH1106_WIDTH - 1) ||
+       y > (SH1106_HEIGHT - 1)) {
+        return; // Nothing to do here.
+    }
+
+    // As we are only having 1bit color depth, we store
+    // our column pixel value as bit set in the selected row "page".
+    // To make this a bit more fun, our row train is approaching today in
+    // reverse order:
+    //
+    //   BMP[X][Y] = BIT_AT(BUF[X][7 - (Y / 8)], 7 - (Y % 8))
+    //
+    uint8_t yoffset = 7 - y / 8;
+    uint8_t bitval = 1 << (7 - (y % 8));
+    
+    if (c) {
+        _display_buffer[x][yoffset] |= bitval;
+    } else {
+        _display_buffer[x][yoffset] &= ~bitval;
+    }
+}
+
+
+
 
