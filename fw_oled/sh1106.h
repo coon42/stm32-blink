@@ -41,6 +41,8 @@ void sh1106_display_off();
 // Drawing
 void sh1106_putpixel(uint8_t x, uint8_t y, uint8_t c);
 void sh1106_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t c);
+void sh1106_fill(uint8_t c);
+void sh1106_clear();
 
 #endif
 

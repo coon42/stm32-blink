@@ -210,6 +210,21 @@ void sh1106_putpixel(uint8_t x, uint8_t y, uint8_t c)
 }
 
 /*
+ * Fill screen
+ */
+void sh1106_fill(uint8_t c)
+{
+    for(uint8_t x = 0; x < SH1106_WIDTH; x++) {
+        for(uint8_t y = 0; y < SH1106_HEIGHT; y++) {
+            sh1106_putpixel(x, y, c);
+        }
+    }
+
+    sh1106_update();
+}
+
+
+/*
  * Draw a filled rect
  */
 void sh1106_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t c)
@@ -223,5 +238,15 @@ void sh1106_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t c)
     sh1106_update();
 }
 
-
+/*
+ * Clear screen
+ */
+void sh1106_clear()
+{
+    for(uint8_t x = 0; x < SH1106_WIDTH; x++) {
+        for(uint8_t y = 0; y < SH1106_HEIGHT / 8; y++) {
+            _display_buffer[x][y] = 0x00;
+        }
+    }
+}
 
