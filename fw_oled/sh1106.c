@@ -209,6 +209,19 @@ void sh1106_putpixel(uint8_t x, uint8_t y, uint8_t c)
     }
 }
 
+/*
+ * Draw a filled rect
+ */
+void sh1106_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_t c)
+{
+    for(uint8_t i = 0; i < w; i++) {
+        for(uint8_t j = 0; j < h; j++) {
+            sh1106_putpixel(x + i, y + j, c);
+        }
+    }
+
+    sh1106_update();
+}
 
 
 
