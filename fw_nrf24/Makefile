@@ -34,7 +34,7 @@ LDFLAGS += -lopencm3_stm32f1 -lm
 
 all: main.elf
 
-hal_stm32f1.o: hal_stm32f1.o
+hal_stm32f1.o: hal_stm32f1.c
 	$(CC) $(CFLAGS) -c hal_stm32f1.c -o hal_stm32f1.o
 
 nrf24l01p.o: nrf24l01p.c
@@ -47,7 +47,7 @@ main.o: main.c usb_serial.o
 	$(CC) $(CFLAGS) -c -o main.o main.c usb_serial.o
 
 main.elf: main.o usb_serial.o nrf24l01p.o hal_stm32f1.o
-	$(CC) $(CFLAGS) -o main.elf main.o usb_serial.o nrf24l01p.o $(LDFLAGS)
+	$(CC) $(CFLAGS) -o main.elf main.o usb_serial.o nrf24l01p.o hal_stm32f1.o $(LDFLAGS)
 
 	$(OBJCOPY) -O ihex $@ $(@:.elf=.hex)
 	$(OBJCOPY) -O binary $@ $(@:.elf=.bin)
