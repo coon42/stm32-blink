@@ -27,7 +27,9 @@ uint8_t nrf24_getCe() { // GPIO get?
 }
 
 uint8_t spiXmitByte(uint8_t value) {
-  spi_send(SPI1, value);
+  uint8_t ret = (uint8_t)spi_xfer(SPI1, value);
+
+  return ret;
 }
 
 void spiInit() {

@@ -6,7 +6,7 @@
 // so it has to be set in standby I mode after 4ms beeing active for cooldown.
 static uint32_t _txCooldownTimeMs;
 
-static void readRegister(uint8_t reg, void* dataIn, uint8_t len) {
+void readRegister(uint8_t reg, void* dataIn, uint8_t len) {
   int i;
   nrf24_csnLow();
   spiXmitByte(CMD_R_REGISTER | (0x1F & reg));
@@ -17,7 +17,7 @@ static void readRegister(uint8_t reg, void* dataIn, uint8_t len) {
   nrf24_csnHigh();
 }
 
-static void readRegisterB(uint8_t reg, void* dataIn) {
+void readRegisterB(uint8_t reg, void* dataIn) {
   readRegister(reg, dataIn, 1);
 }
 
@@ -70,7 +70,7 @@ static void writePayload(uint8_t* payload, uint8_t payloadSize) {
   for(i = 0; i < payloadSize; i++)
     spiXmitByte(payload[i]);
 
-  nrf24_csnHigh();  
+  nrf24_csnHigh();
 }
 
 static void checkForCooldown() {
@@ -125,7 +125,7 @@ void nrf24_enableCRC(uint8_t numBytes) {
     default:
       break;
   }
-  
+
   writeRegisterB(REG_CONFIG, &config);
 }
 
@@ -139,8 +139,8 @@ void nrf24_powerUp(uint8_t enable) {
 void nrf24_listenMode(uint8_t enable) {
   // delay transition between rx and tx must be at least 130us
   // else the chip meight crash.
-  delayUs(200);
-  
+  delayMs(200);
+
   RegNrf24CONFIG_t config;
   readRegisterB(REG_CONFIG, &config);
   config.prim_rx = enable;
@@ -378,7 +378,7 @@ uint8_t nrf24_getCurrentRxPipe() {
 uint8_t nrf24_getDataRate() {
   RegNrf24RF_SETUP_t rfSetup;
   readRegisterB(REG_RF_SETUP, &rfSetup);
-  
+
   if(rfSetup.rf_dr_low)
     return SPEED_250K;
   else if(rfSetup.rf_dr_high)
@@ -425,33 +425,33 @@ uint8_t nrf24_getPayloadSize(uint8_t pipeId) {
     default:
       break;
   }
-  
+
   return size;
 }
 
 uint8_t nrf24_getPayloadSizeRxFifoTop() {
   uint8_t size;
-  
+
   nrf24_csnLow();
   spiXmitByte(CMD_R_RX_PL_WID);
   size = spiXmitByte(0x00);
   nrf24_csnHigh();
-  
+
   return size;
 }
 
 uint32_t nrf24_recvPacket(void* packet) {
   if(!nrf24_isPoweredOn())
     return NRF_DEVICE_NOT_POWERED_ON;
-  
+
   uint8_t pipeId = nrf24_getCurrentRxPipe();
   if(pipeId == RX_P_NO_FIFO_EMPTY)
     return NRF_NO_DATA_AVAILABLE;
-  
+
   return readPayload((uint8_t*)packet);
 }
 
-void nrf24_flushRxFifo() {  
+void nrf24_flushRxFifo() {
   nrf24_csnLow();
   spiXmitByte(CMD_FLUSH_RX);
   nrf24_csnHigh();
@@ -514,6 +514,8 @@ uint8_t nrf24_carrierIsPresent() {
 
 void nrf24_init() {
   spiInit();
+  nrf24_csnHigh();
+  delayMs(10);
 
   _txCooldownTimeMs = 0;
   nrf24_flushTxFifo();

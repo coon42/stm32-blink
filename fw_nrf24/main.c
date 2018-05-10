@@ -121,27 +121,30 @@ static void initClocks() {
 }
 
 static void initGpio() {
-/*
-  gpio_set_mode(RCC_SPI1,
+	gpio_set_mode(GPIOA,
+                GPIO_MODE_OUTPUT_50_MHZ,
+                GPIO_CNF_OUTPUT_ALTFN_PUSHPULL,
+                GPIO_USART1_TX);
+
+  gpio_set_mode(GPIOA,
                 GPIO_MODE_OUTPUT_50_MHZ,
                 GPIO_CNF_OUTPUT_ALTFN_PUSHPULL,
                 GPIO5 | GPIO7); // SCK, MOSI
 
-  gpio_set_mode(RCC_SPI1,
+  gpio_set_mode(GPIOA,
                 GPIO_MODE_INPUT,
                 GPIO_CNF_INPUT_FLOAT,
                 GPIO6); // MISO
 
-  gpio_set_mode(RCC_SPI1,
+  gpio_set_mode(GPIOA,
                 GPIO_MODE_OUTPUT_50_MHZ,
                 GPIO_CNF_OUTPUT_PUSHPULL,
-                GPIO4); // NSS (SCK)
+                GPIO4); // NSS (CSN)
 
   gpio_set_mode(GPIO_LED_PORT,
                 GPIO_MODE_OUTPUT_2_MHZ,
                 GPIO_CNF_OUTPUT_PUSHPULL,
                 GPIO_LED_PIN);
-*/
 }
 
 static void initSpi() {
@@ -156,7 +159,7 @@ static void initSpi() {
   spi_init_master(SPI1,
                   SPI_CR1_BAUDRATE_FPCLK_DIV_256,
                   SPI_CR1_CPOL_CLK_TO_1_WHEN_IDLE,
-                  SPI_CR1_CPHA_CLK_TRANSITION_2,
+                  SPI_CR1_CPHA_CLK_TRANSITION_1,
                   SPI_CR1_DFF_8BIT,
                   SPI_CR1_MSBFIRST);
 
@@ -166,8 +169,6 @@ static void initSpi() {
 }
 
 static void initUart1() {
-	gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_TX);
-
 	/* Setup UART parameters. */
 	// usart_set_baudrate(USART1, 38400);
 	/* TODO usart_set_baudrate() doesn't support 24MHz clock (yet). */
@@ -216,11 +217,10 @@ static void init() {
   initGpio();
   initUart1();
   initSpi();
-  nrf24_init();
   setup_nrf24();
 }
 
-static void delayMs(int timeMs) {
+void delayMs(int timeMs) {
   for(int i = 0; i < timeMs; ++i) {
     for (int k = 0; k < 10250; k++) {
       __asm__("nop");
@@ -237,6 +237,13 @@ int main(void) {
   char recvBuffer[NRF_MAX_PAYLOAD_SIZE + 1];
 
   while(TRUE) {
+    nrf24_setRFChannel(0x51);
+    nrf24_getRFChannel();
+    nrf24_getRFChannel();
+    nrf24_getRFChannel();
+
+    continue;
+
     recvByteCount = nrf24_recvPacket(recvBuffer);
     recvBuffer[recvByteCount] = '\0';
 
@@ -255,10 +262,12 @@ int main(void) {
       debugPrintln("");
     }
 
+/*
     gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
     delayMs(500);
     gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
     delayMs(500);
+*/
   }
 
   return 0;
