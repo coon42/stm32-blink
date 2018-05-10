@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "nrf24l01p.h"
+#include "nrf24_hal.h"
 
 // For some reason the transmitter must not be active for more at 4ms at a time
 // so it has to be set in standby I mode after 4ms beeing active for cooldown.
@@ -87,7 +88,7 @@ static void checkForCooldown() {
 uint8_t nrf24_shockburstIsEnabled(uint8_t pipeId) {
   RegNrf24EN_AA_t enaa;
   readRegisterB(REG_EN_AA, &enaa);
-  
+
   switch(pipeId) {
     case 0: return enaa.enaa_p0;
     case 1: return enaa.enaa_p1;
@@ -96,6 +97,8 @@ uint8_t nrf24_shockburstIsEnabled(uint8_t pipeId) {
     case 4: return enaa.enaa_p4;
     case 5: return enaa.enaa_p5;
   }
+
+  return 0;
 }
 
 // NRF24 API
