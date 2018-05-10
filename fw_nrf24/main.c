@@ -26,7 +26,7 @@ static void debugPrint(const char* pText) {
 
 static void debugPrintln(const char* pText) {
   sendUartText(pText);
-  sendUartText("\n");
+  sendUartText("\r\n");
 }
 
 void debugPrintDec(int n) {
@@ -36,7 +36,7 @@ void debugPrintDec(int n) {
   sendUartText(pNum);
 }
 
-void debugPrintHex(int n) {
+static void debugPrintHex(int n) {
   char pHex[32];
   snprintf(pHex, sizeof(pHex), "0x%02X", n);
 
@@ -49,7 +49,7 @@ void debugPrintHex(int n) {
   gpio_set_mode(GPIO_LED_PORT, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO_LED_PIN);
 }
 
-void printFullConfig() {
+static void printFullConfig() {
   debugPrintln("NRF24 Configuration:");
   debugPrint("Mode: "); debugPrintln(nrf24_isListening() ? "Listening" : "Transmitting");
   debugPrint("RF Channel: "); debugPrintDec(nrf24_getRFChannel()); debugPrintln("");
@@ -122,11 +122,6 @@ static void initClocks() {
 
 static void initGpio() {
 /*
-  gpio_set_mode(RCC_GPIOB,
-                GPIO_MODE_OUTPUT_50_MHZ,
-                GPIO_CNF_OUTPUT_PUSHPULL,
-                GPIO0 | GPIO1); // DC / RST
-
   gpio_set_mode(RCC_SPI1,
                 GPIO_MODE_OUTPUT_50_MHZ,
                 GPIO_CNF_OUTPUT_ALTFN_PUSHPULL,
@@ -141,12 +136,12 @@ static void initGpio() {
                 GPIO_MODE_OUTPUT_50_MHZ,
                 GPIO_CNF_OUTPUT_PUSHPULL,
                 GPIO4); // NSS (SCK)
-*/
 
   gpio_set_mode(GPIO_LED_PORT,
                 GPIO_MODE_OUTPUT_2_MHZ,
                 GPIO_CNF_OUTPUT_PUSHPULL,
                 GPIO_LED_PIN);
+*/
 }
 
 static void initSpi() {
@@ -188,7 +183,7 @@ static void initUart1() {
 	usart_enable(USART1);
 }
 
-void setup_nrf24() {
+static void setup_nrf24() {
   nrf24_init();
 
   // uint8_t rxaddr1[] = { 0x00, 0x53, 0x00, 0x46, 0x09 };
@@ -216,16 +211,16 @@ void setup_nrf24() {
   printFullConfig();
 }
 
-void init() {
+static void init() {
   initClocks();
   initGpio();
   initUart1();
-//   initSpi();
-//  nrf24_init();
-//  setup_nrf24();
+  initSpi();
+  nrf24_init();
+  setup_nrf24();
 }
 
-void delayMs(int timeMs) {
+static void delayMs(int timeMs) {
   for(int i = 0; i < timeMs; ++i) {
     for (int k = 0; k < 10250; k++) {
       __asm__("nop");
@@ -236,25 +231,7 @@ void delayMs(int timeMs) {
 int main(void) {
   init();
 
-  while (1) {
-    gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
-    sendUartText("on\r\n");
-    delayMs(500);
-    gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
-    sendUartText("off\r\n");
-    delayMs(500);
-  }
-
-//----------
-
-  init();
-  rcc_clock_setup_in_hse_8mhz_out_72mhz();
-
-  while(true) {
-    sendUartText("lol\n");
-  }
-
-  init();
+  sendUartText("booting...\r\n");
 
   int32_t recvByteCount;
   char recvBuffer[NRF_MAX_PAYLOAD_SIZE + 1];
@@ -277,6 +254,11 @@ int main(void) {
 
       debugPrintln("");
     }
+
+    gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
+    delayMs(500);
+    gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
+    delayMs(500);
   }
 
   return 0;
