@@ -228,28 +228,26 @@ void delayMs(int timeMs) {
   }
 }
 
+static void blink() {
+  gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
+  delayMs(50);
+  gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
+  delayMs(50);
+}
+
 int main(void) {
   init();
-
-  sendUartText("booting...\r\n");
+  gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
 
   int32_t recvByteCount;
   char recvBuffer[NRF_MAX_PAYLOAD_SIZE + 1];
 
   while(TRUE) {
-    nrf24_setRFChannel(0x51);
-    nrf24_getRFChannel();
-    nrf24_getRFChannel();
-    nrf24_getRFChannel();
-
-    continue;
-
     recvByteCount = nrf24_recvPacket(recvBuffer);
     recvBuffer[recvByteCount] = '\0';
 
     if(recvByteCount != NRF_NO_DATA_AVAILABLE) {
-      // blink();
-
+      blink();
       debugPrint("Received [");
       debugPrintDec(recvByteCount);
       debugPrint("]: ");
@@ -261,13 +259,6 @@ int main(void) {
 
       debugPrintln("");
     }
-
-/*
-    gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
-    delayMs(500);
-    gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
-    delayMs(500);
-*/
   }
 
   return 0;
