@@ -6,19 +6,18 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
+#include <libopencm3/stm32/usart.h>
 #include <libopencm3/stm32/spi.h>
 #include <libopencm3/cm3/nvic.h>
 
-#include "usb_serial.h"
 #include "nrf24l01p.h"
 
 #define GPIO_LED_PORT GPIOC
 #define GPIO_LED_PIN  GPIO13
 
-static usbd_device* _pUsbd_dev = NULL;
-
 static void sendUartText(const char* pText) {
-  usb_serial_tx(_pUsbd_dev, pText);
+  for(int i = 0; i < strlen(pText); ++i)
+    usart_send_blocking(USART1, pText[i]);
 }
 
 static void debugPrint(const char* pText) {
@@ -114,6 +113,7 @@ static void initClocks() {
   rcc_clock_setup_in_hse_8mhz_out_72mhz();
 
   rcc_periph_clock_enable(RCC_GPIOA);
+  rcc_periph_clock_enable(RCC_USART1);
   rcc_periph_clock_enable(RCC_GPIOB);
   rcc_periph_clock_enable(RCC_GPIOC);
   rcc_periph_clock_enable(RCC_SPI1);
@@ -170,6 +170,24 @@ static void initSpi() {
   spi_enable(SPI1);
 }
 
+static void initUart1() {
+	gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_TX);
+
+	/* Setup UART parameters. */
+	// usart_set_baudrate(USART1, 38400);
+	/* TODO usart_set_baudrate() doesn't support 24MHz clock (yet). */
+	/* This is the equivalent: */
+	USART_BRR(USART1) = (uint16_t)((72000000 << 4) / (9600 * 16));
+
+	usart_set_databits(USART1, 8);
+	usart_set_stopbits(USART1, USART_STOPBITS_1);
+	usart_set_mode(USART1, USART_MODE_TX);
+	usart_set_parity(USART1, USART_PARITY_NONE);
+	usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
+
+	usart_enable(USART1);
+}
+
 void setup_nrf24() {
   nrf24_init();
 
@@ -201,61 +219,11 @@ void setup_nrf24() {
 void init() {
   initClocks();
   initGpio();
+  initUart1();
 //   initSpi();
 //  nrf24_init();
 //  setup_nrf24();
 }
-
-/*
-void init_pwm() {
-    rcc_periph_clock_enable(RCC_TIM2);
-
-    // Setup NVIC
-    nvic_enable_irq(NVIC_TIM2_IRQ);
-    nvic_set_priority(NVIC_TIM2_IRQ, 1);
-
-    // Set mode: No Div, Edge aligned, Up
-    timer_set_mode(TIM2,
-                   TIM_CR1_CKD_CK_INT,
-                   TIM_CR1_CMS_EDGE,
-                   TIM_CR1_DIR_UP);
-
-    // Interrupts:
-    // Timer Compare Channel 1
-    // Timer Update / Overflow
-    TIM2_DIER |= TIM_DIER_UIE | TIM_DIER_CC1IE;
-
-    // Configure prescaler
-    TIM2_ARR = 65535; // Full range
-    TIM2_PSC = 0; // f / (arr * 60 Hz)
-
-    // Set compare value
-    TIM2_CCR1 = 0;
-
-    // Enable timer
-    TIM2_CR1 |= TIM_CR1_CEN;
-}
-
-static void usbSample() {
-  int i;
-  const char* line;
-
-  while (1) {
-    usbd_poll(_pUsbd_dev);
-
-    line = usb_serial_rx();
-    if (line) {
-      usb_serial_tx(_pUsbd_dev, "Roflcopter: ");
-      usb_serial_tx(_pUsbd_dev, line);
-      usb_serial_tx(_pUsbd_dev, "\r\n");
-    }
-
-    i++;
-  }
-}
-*/
-
-// ----------------
 
 void delayMs(int timeMs) {
   for(int i = 0; i < timeMs; ++i) {
@@ -268,35 +236,19 @@ void delayMs(int timeMs) {
 int main(void) {
   init();
 
-  while(1) {
+  while (1) {
     gpio_clear(GPIO_LED_PORT, GPIO_LED_PIN);
+    sendUartText("on\r\n");
     delayMs(500);
     gpio_set(GPIO_LED_PORT, GPIO_LED_PIN);
+    sendUartText("off\r\n");
     delayMs(500);
-  }
-
-  const char* line;
-
-  usbd_device *usbd_dev = usb_serial_init();
-
-  while (1) {
-    usbd_poll(usbd_dev);
-    line = usb_serial_rx();
-
-    if (line) {
-      usb_serial_tx(usbd_dev, "Received a line: ");
-      usb_serial_tx(usbd_dev, line);
-      usb_serial_tx(usbd_dev, "\r\n");
-    }
-
-//    sendUartText("lol\n");
   }
 
 //----------
 
   init();
   rcc_clock_setup_in_hse_8mhz_out_72mhz();
-  _pUsbd_dev = usb_serial_init();
 
   while(true) {
     sendUartText("lol\n");
